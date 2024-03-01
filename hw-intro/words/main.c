@@ -1,5 +1,4 @@
 /*
-
   Word Count using dedicated lists
 
 */
@@ -22,6 +21,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <assert.h>
+#include <bits/getopt_core.h>
 #include <getopt.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -46,7 +46,23 @@ WordCount *word_counts = NULL;
  */
 int num_words(FILE* infile) {
   int num_words = 0;
-
+  if(infile==NULL){
+    perror("Error in opening the file") ;
+  }
+  int c, current_word_length=0;
+  do{
+    c=fgetc(infile);
+    if(isalpha(c)!=0){
+      if(current_word_length<MAX_WORD_LEN){
+        current_word_length++;
+      }
+      else{
+        current_word_length=0;
+        num_words++;
+      }
+    }
+  } while(c!=EOF);
+  fclose(infile);
   return num_words;
 }
 
@@ -62,6 +78,17 @@ int num_words(FILE* infile) {
  * and 0 otherwise.
  */
 int count_words(WordCount **wclist, FILE *infile) {
+  int c;
+  do{
+    char *word;
+    c=fgetc(infile);
+    if(c==' ' || c=='\n'){
+      add_word(wclist, word);
+      continue;
+    }
+    word+=c;
+  }while(c!=EOF);
+
   return 0;
 }
 
@@ -70,6 +97,16 @@ int count_words(WordCount **wclist, FILE *infile) {
  * Useful function: strcmp().
  */
 static bool wordcount_less(const WordCount *wc1, const WordCount *wc2) {
+  if(strcmp(wc1->word, wc2->word)>0){
+    return true;
+  }
+  else if(strcmp(wc1->word, wc2->word)<0){
+    return false; 
+  }
+  else if(wc1->count == wc2->count){
+    if(wc1->word<wc2->word) return true;
+    else return false;
+  }
   return 0;
 }
 
@@ -133,7 +170,13 @@ int main (int argc, char *argv[]) {
   if ((argc - optind) < 1) {
     // No input file specified, instead, read from STDIN instead.
     infile = stdin;
-  } else {
+    total_words=num_words(infile);
+    } else {
+    int iter;
+    for (iter=optind; iter<argc; iter++) {
+      infile=fopen(argv[iter], "r");
+      total_words+=num_words(infile);
+    }
     // At least one file specified. Useful functions: fopen(), fclose().
     // The first file can be found at argv[optind]. The last file can be
     // found at argv[argc-1].
@@ -143,7 +186,7 @@ int main (int argc, char *argv[]) {
     printf("The total number of words is: %i\n", total_words);
   } else {
     wordcount_sort(&word_counts, wordcount_less);
-
+     
     printf("The frequencies of each word are: \n");
     fprint_words(word_counts, stdout);
 }
